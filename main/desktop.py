@@ -39,6 +39,9 @@ BROWSER_CLASSES = {
     "vivaldi-stable",
     "floorp",
     "one.ablaze.floorp",
+    "helium",
+    "helium-browser",
+    "net.imput.helium",
 }
 
 

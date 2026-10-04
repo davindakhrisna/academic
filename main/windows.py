@@ -19,6 +19,7 @@ BROWSERS = {
     "zen.exe",
     "floorp.exe",
     "chromium.exe",
+    "helium.exe",
 }
 
 

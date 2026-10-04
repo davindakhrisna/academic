@@ -33,6 +33,14 @@ class ConfigTests(unittest.TestCase):
     def test_environment_only_configuration(self):
         self.assertEqual(load_config({"GOOGLE_API_KEY": "one"}, self.path).keys, ("one",))
 
+    def test_dotted_keys_are_accepted_without_modification(self):
+        keys = ("AQ.primary_key", "AQ.backup-key", "AQ.tertiary_key")
+        self.path.write_text(
+            f"GOOGLE_API_KEY={keys[0]}\nGOOGLE_API_KEY_BACKUP={keys[1]}\n"
+            f"GOOGLE_API_KEY_TERTIARY={keys[2]}\n"
+        )
+        self.assertEqual(load_config({}, self.path).keys, keys)
+
     def test_missing_explicit_config_fails(self):
         with self.assertRaisesRegex(AcademicError, "does not exist"):
             load_config({"ACADEMIC_ENV_FILE": str(self.path), "GOOGLE_API_KEY": "one"}, self.path)

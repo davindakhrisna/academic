@@ -1,8 +1,52 @@
 # Academic
 
 A modular Python screenshot helper with **Question Runner**, which selects and
-verifies answers in your existing browser. The application has not been compiled
-into an executable. Python 3.11 or newer is required.
+verifies answers in your existing browser. Python 3.11 or newer is required for
+source runs; standalone executables include their Python runtime.
+
+## Download and start
+
+Download the Linux x86_64 NixOS archive and `SHA256SUMS` from the
+[v0.1.0 prerelease](https://github.com/davindakhrisna/academic/releases/tag/v0.1.0).
+This binary was built and smoke-tested on NixOS; it is not a portable build for
+other Linux distributions. No Windows executable is included yet.
+
+```sh
+sha256sum -c SHA256SUMS
+tar -xzf academic-v0.1.0-linux-x86_64-nixos.tar.gz
+cd academic-v0.1.0-linux-x86_64-nixos
+cp -n .env.example .env
+```
+
+Edit `.env` to set your Gemini key and model. Backup keys can be empty. Keep the
+file private; it is not included in the release. Verify requirements below, then:
+
+```sh
+./academic --help
+./academic --simulate
+./academic --run --questions 1 --dry-run
+```
+
+During the five-second countdown, focus your browser with one unanswered
+multiple-choice practice question and all its controls visible. Dry run inspects
+the screen without clicking. To enable answer selection and navigation:
+
+```sh
+./academic --run --questions 1
+```
+
+Start with one practice question. Press Ctrl+C in the app terminal to stop, or
+run `./academic --stop` from another terminal. Helium is recognized on both
+supported platforms; browser and native Windows acceptance checks remain pending.
+Read [release notes](RELEASE_NOTES.md) for the verification scope and limitations.
+
+For the executable built from this checkout, use `./dist/academic` and point it
+at the existing configuration without copying your keys:
+
+```sh
+export ACADEMIC_ENV_FILE="$PWD/.env"
+./dist/academic --run --questions 1 --dry-run
+```
 
 ## Run from source
 
@@ -22,8 +66,46 @@ python main.py --stop                  # From a second terminal
 
 `python -m main` accepts the same arguments. `py main.py` can be used on
 Windows. `main.sh` is a small compatibility launcher for Linux shortcuts.
-`pyproject.toml` declares the future `academic` command; no package installation
-or executable build has been performed as part of this migration.
+`pyproject.toml` also declares the installed `academic` command.
+
+## Build a standalone executable
+
+Build on the operating system and architecture where the app will run:
+
+```sh
+python -m pip install ".[build]"
+python build.py
+./dist/academic --help
+```
+
+On Windows use `py` for the build commands and `dist\academic.exe --help` to
+launch it. PyInstaller does not cross-compile Windows executables from Linux.
+On NixOS you can build with:
+
+```sh
+nix shell nixpkgs#python311Packages.pyinstaller -c pyinstaller \
+  --noconfirm --clean --onefile --console --noupx --name academic \
+  --specpath build --workpath build/work --distpath dist main.py
+```
+
+The output is `dist/academic` on Linux or `dist/academic.exe` on Windows.
+Python and imported modules are bundled; external desktop tools and `curl`
+still need to be installed. A NixOS-built executable can retain dependencies
+on Nix store libraries, so build on a conventional Linux distribution for
+distribution to non-Nix systems. This build does not certify desktop behavior.
+
+Keep `.env` beside the executable, or set `ACADEMIC_ENV_FILE` to an absolute
+configuration path. Existing `~/nixos-config/.env` fallback still applies.
+Configuration is never embedded in the executable; `.env.example` can be
+copied manually as a template without overwriting your real keys. Build outputs
+are ignored by Git. Use `academic --set-model MODEL` to update the external
+configuration, including when the executable is launched from another directory.
+
+After a Linux build, run `python -m tests.verify_executable` for executable smoke
+checks with synthetic keys and desktop tools. This checks CLI routing, model
+updates beside a relocated executable, screenshot/answer/notification flow,
+simulation, clearing, cancellation requests, and missing configuration without
+making live API calls. Evidence is saved in `tests/verification-executable.json`.
 
 ## Configuration
 
@@ -64,8 +146,13 @@ Question Runner requires Hyprland and `hyprctl`, with support for the
 your normal Hyprland session. Other Wayland compositors are not supported for
 automated input in this version.
 
-**Windows 10/11:** Python, `curl.exe` (included in current Windows versions),
-and Pillow:
+Helium is recognized on Hyprland using the exact window classes `helium`,
+`helium-browser`, and `net.imput.helium` (case insensitive). Custom window class
+overrides are not accepted. Helium still needs native desktop acceptance testing.
+
+**Windows 10/11:** `curl.exe` on PATH, an unlocked interactive desktop, and a
+supported browser. Run the app at the same privilege level as the browser.
+To build or run from source, install Python 3.11+ and Pillow:
 
 ```powershell
 py -m pip install "Pillow>=11"
@@ -75,8 +162,13 @@ Question Runner uses native Windows APIs for foreground-window checks, physical
 pixel coordinates, cursor positioning, and mouse input. The desktop must be
 unlocked; use the same privilege level as your browser. Supported browser
 processes include Firefox, Chrome, Edge, Brave, Chromium, Vivaldi, LibreWolf,
-Zen, and Floorp. Windows notifications currently print in the console;
+Zen, Floorp, and Helium (`chrome.exe` or `helium.exe`). Windows notifications
+currently print in the console;
 system-wide notification clearing remains Linux/dunst only.
+
+When using WinBoat, build and run `academic.exe` inside Windows. A noVNC viewer
+does not make the Linux app control Edge directly; running through that viewer
+has not been validated.
 
 ## Question Runner behavior
 
@@ -129,6 +221,21 @@ This affects latency, cost, and quota. Keys in the same Google project may share
 quota.
 
 ## Verification
+
+To check all three real API keys independently against `GEMINI_MODEL`:
+
+```sh
+python -m tests.live_api_keys
+```
+
+On Windows use `py -m tests.live_api_keys`. This opt-in suite sends one small
+red PNG to Gemini for each configured key and checks the vision answer. It
+never rotates keys or retries a failed request. Missing/placeholder keys fail
+their own test; remaining keys are still checked. All three must pass for exit
+code 0. Keys and model responses are excluded from test output. Requests may
+consume quota or incur cost; keys in the same project can share quota.
+These live checks are separate from the offline regression suite and do not
+certify academic accuracy or browser automation.
 
 ```sh
 python tests/verify.py

@@ -4,15 +4,21 @@ import os
 import re
 import shlex
 import stat
+import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from .errors import AcademicError
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = (
+    Path(sys.executable).resolve().parent
+    if getattr(sys, "frozen", False)
+    else Path(__file__).resolve().parent.parent
+)
 DEFAULT_MODEL = "gemini-3.8-flash"
 KEY_NAMES = ("GOOGLE_API_KEY", "GOOGLE_API_KEY_BACKUP", "GOOGLE_API_KEY_TERTIARY")
+KEY_PATTERN = re.compile(r"[A-Za-z0-9._-]+\Z")
 ASSIGNMENT = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$")
 MODEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 
@@ -79,7 +85,7 @@ def load_config(environ=None, path: Path | None = None) -> Config:
     if not keys:
         raise AcademicError("No API keys configured.")
     for key in keys:
-        if not re.fullmatch(r"[A-Za-z0-9_-]+", key):
+        if not KEY_PATTERN.fullmatch(key):
             raise AcademicError("Invalid API key format in configuration.")
         if key.startswith("your_"):
             raise AcademicError("Replace placeholder API keys in .env before solving.")

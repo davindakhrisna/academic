@@ -9,6 +9,7 @@ from pathlib import Path
 from .config import Config
 from .errors import AcademicError, ApiError
 from .images import png_size
+from .system import external_environment
 
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models"
 REQUEST_LIMIT = 20_000_000
@@ -54,13 +55,15 @@ class CurlTransport:
                 f"{self.endpoint}/{model}:generateContent",
             ]
             try:
-                result = subprocess.run(
-                    args,
-                    input=f'header = "x-goog-api-key: {key}"\n'.encode(),
-                    capture_output=True,
-                    timeout=125,
-                    check=False,
-                )
+                with external_environment() as environment:
+                    result = subprocess.run(
+                        args,
+                        input=f'header = "x-goog-api-key: {key}"\n'.encode(),
+                        capture_output=True,
+                        timeout=125,
+                        check=False,
+                        env=environment,
+                    )
             except subprocess.TimeoutExpired:
                 raise ApiError("Request timed out.") from None
             except OSError:

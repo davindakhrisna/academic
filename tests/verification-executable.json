@@ -1,0 +1,17 @@
+{
+  "successful": true,
+  "platform": "linux",
+  "executable_sha256": "c6c811fd3a683ec8137b113a38ee6bd0816a997eb7add2b1aeba4a3bfc47d170",
+  "passed_checks": [
+    "help_without_python_on_path",
+    "invalid_arguments",
+    "model_update_beside_executable_from_another_directory",
+    "screenshot_answer_notification_with_external_tools",
+    "clear_notifications",
+    "stop_request",
+    "simulation",
+    "missing_configuration"
+  ],
+  "live_gemini_tested": false,
+  "native_desktop_tested": false
+}

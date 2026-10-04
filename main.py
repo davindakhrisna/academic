@@ -1,4 +1,4 @@
-"""Run the Python app without compiling an executable."""
+"""Entry point for source runs and standalone builds."""
 
 from main.cli import main
 

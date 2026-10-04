@@ -71,6 +71,48 @@ class DesktopTests(unittest.TestCase):
         with self.assertRaisesRegex(AcademicError, "not a supported browser"):
             WindowsDesktop(api=api, grab=lambda bounds: png()).capture()
 
+    def test_windows_helium_identifiers_capture_and_click(self):
+        for application in ("chrome.exe", "helium.exe"):
+            with self.subTest(application=application):
+                api = FakeWindowsAPI()
+                api.application = application
+                desktop = WindowsDesktop(api=api, grab=lambda bounds: png())
+                desktop.click(desktop.capture(), Point(100, 200))
+                self.assertEqual(api.clicks, 1)
+
+    def test_hyprland_helium_identifiers_are_recognized_exactly(self):
+        for application in ("helium", "Helium", "helium-browser", "net.imput.helium"):
+            active = {
+                "class": application,
+                "address": "0xabc",
+                "at": [0, 0],
+                "size": [1000, 1000],
+                "title": "Practice quiz",
+            }
+            with (
+                self.subTest(application=application),
+                patch("main.desktop.require_commands"),
+                patch.dict("os.environ", {"HYPRLAND_INSTANCE_SIGNATURE": "test"}),
+                patch("main.desktop.run_command", return_value=json.dumps(active).encode()),
+            ):
+                desktop = HyprlandDesktop()
+                desktop.grab = lambda bounds: png()
+                self.assertEqual(desktop.capture().window.identity, "0xabc")
+
+    def test_helium_substring_in_another_application_is_rejected(self):
+        api = FakeWindowsAPI()
+        api.application = "terminal-helium.exe"
+        with self.assertRaises(AcademicError):
+            WindowsDesktop(api=api, grab=lambda bounds: png()).capture()
+        active = {"class": "terminal-helium"}
+        with (
+            patch("main.desktop.require_commands"),
+            patch.dict("os.environ", {"HYPRLAND_INSTANCE_SIGNATURE": "test"}),
+            patch("main.desktop.run_command", return_value=json.dumps(active).encode()),
+            self.assertRaises(AcademicError),
+        ):
+            HyprlandDesktop().window()
+
     def test_windows_focus_change_after_motion_sends_no_click(self):
         api = FakeWindowsAPI()
         desktop = WindowsDesktop(api=api, grab=lambda bounds: png())

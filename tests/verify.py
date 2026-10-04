@@ -29,6 +29,7 @@ def main():
     result = unittest.TextTestRunner(verbosity=2, resultclass=EvidenceResult).run(suite)
     source_files = sorted((ROOT / "main").glob("*.py")) + [
         ROOT / "main.py",
+        ROOT / "build.py",
         ROOT / "pyproject.toml",
     ]
     report = {
