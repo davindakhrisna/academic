@@ -131,9 +131,7 @@ class GeminiClient:
         self.config = config
         self.transport = transport or CurlTransport()
 
-    def generate(
-        self, image: bytes, prompt: str = ANSWER_PROMPT, *, schema=None, strict: bool = False
-    ) -> str:
+    def generate(self, image: bytes, prompt: str = ANSWER_PROMPT, *, schema=None) -> str:
         png_size(image)
         payload: dict[str, object] = {
             "contents": [
@@ -162,17 +160,10 @@ class GeminiClient:
         for key in self.config.keys:
             try:
                 body = self.transport.post(self.config.model, key, serialized)
+                return complete_text(body)
             except ApiError as failure:
                 message = str(failure)
                 for secret in self.config.keys:
                     message = message.replace(secret, "[redacted]")
                 error = ApiError(message, failure.status)
-                if strict or (
-                    failure.status is not None
-                    and failure.status not in (401, 403, 429)
-                    and not 500 <= failure.status < 600
-                ):
-                    raise error from None
-                continue
-            return complete_text(body)
         raise error or ApiError("No API keys configured.")

@@ -78,25 +78,48 @@ class HttpTests(unittest.TestCase):
             self.assertEqual(image["mimeType"], "image/png")
             self.assertEqual(base64.b64decode(image["data"]), png())
 
-    def test_runner_quota_stops_after_one_real_request(self):
-        self.replies[:] = [(429, {"error": {"message": "quota"}})]
+    def test_runner_quota_tries_every_key_before_stopping(self):
+        self.replies[:] = [(429, {"error": {"message": "quota"}})] * 3
         with self.assertRaises(ApiError) as error:
-            self.client().generate(png(), strict=True)
+            Vision(self.client()).inspect(png())
         self.assertEqual(error.exception.status, 429)
-        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(
+            [headers["x-goog-api-key"] for _, headers, _ in self.requests],
+            ["primary", "backup", "tertiary"],
+        )
 
-    def test_non_json_404_does_not_retry(self):
-        self.replies[:] = [(404, b"<html>not found</html>")]
+    def test_non_json_404_tries_every_key_before_stopping(self):
+        self.replies[:] = [(404, b"<html>not found</html>")] * 3
         with self.assertRaises(ApiError) as error:
             self.client().generate(png())
         self.assertEqual(error.exception.status, 404)
-        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(len(self.requests), 3)
 
-    def test_malformed_success_stops_runner(self):
-        self.replies[:] = [(200, b"not JSON")]
+    def test_malformed_success_tries_every_key_before_stopping(self):
+        self.replies[:] = [(200, b"not JSON")] * 3
         with self.assertRaises(ApiError):
-            self.client().generate(png(), strict=True)
-        self.assertEqual(len(self.requests), 1)
+            Vision(self.client()).inspect(png())
+        self.assertEqual(len(self.requests), 3)
+
+    def test_runner_finishes_after_primary_and_backup_quota_failures(self):
+        self.replies[:] = [
+            (429, {"error": {"message": "primary quota"}}),
+            (429, {"error": {"message": "backup quota"}}),
+            (200, response([{"text": json.dumps(question())}])),
+            (200, response([{"text": json.dumps(question(selected=("2",)))}])),
+        ]
+        desktop = QuizDesktop()
+        result = QuestionRunner(
+            desktop, Vision(self.client()), sleep=lambda _: None, progress=lambda _: None
+        ).run(1)
+        self.assertTrue(result.complete)
+        self.assertEqual(desktop.clicks, [(100, 200)])
+        self.assertEqual(
+            [headers["x-goog-api-key"] for _, headers, _ in self.requests],
+            ["primary", "backup", "tertiary", "primary"],
+        )
+        self.assertEqual(self.requests[0][2], self.requests[1][2])
+        self.assertEqual(self.requests[1][2], self.requests[2][2])
 
     def test_full_question_runner_with_real_http_and_structured_vision(self):
         states = [
@@ -125,14 +148,13 @@ class HttpTests(unittest.TestCase):
     def test_quota_during_selection_verification_stops_without_navigation(self):
         self.replies[:] = [
             (200, response([{"text": json.dumps(question())}])),
-            (429, {"error": {"message": "quota"}}),
-        ]
+        ] + [(429, {"error": {"message": "quota"}})] * 3
         desktop = QuizDesktop()
         runner = QuestionRunner(
             desktop, Vision(self.client()), sleep=lambda _: None, progress=lambda _: None
         )
         with self.assertRaises(ApiError):
             runner.run(2)
-        self.assertEqual(len(self.requests), 2)
+        self.assertEqual(len(self.requests), 4)
         self.assertEqual(desktop.clicks, [(100, 200)])
         self.assertEqual(runner.answered, 0)

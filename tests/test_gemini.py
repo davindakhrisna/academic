@@ -61,37 +61,43 @@ class GeminiTests(unittest.TestCase):
         self.assertEqual(client.generate(png()), "A")
         self.assertEqual([call[1] for call in transport.calls], ["one", "two", "three"])
 
-    def test_regular_solver_retries_transport_auth_and_server_errors(self):
-        for status in (None, 401, 403, 429, 500, 503):
+    def test_regular_solver_retries_every_api_and_transport_error(self):
+        for status in (None, 400, 401, 403, 404, 429, 500, 503):
             transport = Transport([ApiError("failure", status), response()])
             client = GeminiClient(Config("model", ("one", "two")), transport)
             with self.subTest(status=status):
                 self.assertEqual(client.generate(png()), "A")
                 self.assertEqual(len(transport.calls), 2)
 
-    def test_runner_stops_on_every_api_or_transport_error_without_key_rotation(self):
+    def test_structured_requests_try_every_key_before_stopping(self):
         for status in (None, 400, 401, 403, 404, 429, 500, 503):
-            transport = Transport([ApiError("failure", status), response()])
-            client = GeminiClient(Config("model", ("one", "two")), transport)
+            transport = Transport([ApiError("failure", status)] * 3)
+            client = GeminiClient(Config("model", ("one", "two", "three")), transport)
             with self.subTest(status=status), self.assertRaises(ApiError):
-                client.generate(png(), strict=True)
-            self.assertEqual(len(transport.calls), 1)
+                client.generate(png(), schema={"type": "object"})
+            self.assertEqual([call[1] for call in transport.calls], ["one", "two", "three"])
+            self.assertEqual(len({call[2] for call in transport.calls}), 1)
 
-    def test_bad_requests_and_unknown_models_do_not_rotate_keys(self):
+    def test_bad_requests_and_unknown_models_try_backup(self):
         for status in (400, 404):
             transport = Transport([ApiError("failure", status), response()])
-            with self.subTest(status=status), self.assertRaises(ApiError):
-                GeminiClient(Config("model", ("one", "two")), transport).generate(png())
-            self.assertEqual(len(transport.calls), 1)
+            with self.subTest(status=status):
+                self.assertEqual(
+                    GeminiClient(Config("model", ("one", "two")), transport).generate(png()), "A"
+                )
+            self.assertEqual(len(transport.calls), 2)
 
-    def test_parse_error_does_not_rotate_keys(self):
-        transport = Transport([{}, response()])
-        with self.assertRaises(ApiError):
-            GeminiClient(Config("model", ("one", "two")), transport).generate(png())
-        self.assertEqual(len(transport.calls), 1)
+    def test_incomplete_or_malformed_api_answers_try_backup(self):
+        for body in ({}, response(reason="MAX_TOKENS"), response([])):
+            transport = Transport([body, response()])
+            with self.subTest(body=body):
+                self.assertEqual(
+                    GeminiClient(Config("model", ("one", "two")), transport).generate(png()), "A"
+                )
+            self.assertEqual(len(transport.calls), 2)
 
     def test_error_messages_redact_all_configured_keys(self):
-        transport = Transport([ApiError("one invalid two", 400)])
+        transport = Transport([ApiError("one invalid two", 400)] * 2)
         with self.assertRaises(ApiError) as error:
             GeminiClient(Config("model", ("one", "two")), transport).generate(png())
         self.assertNotIn("one", str(error.exception))
@@ -100,7 +106,7 @@ class GeminiTests(unittest.TestCase):
     def test_png_payload_and_structured_response_settings(self):
         transport = Transport([response()])
         GeminiClient(Config("model", ("one",)), transport).generate(
-            png(), schema={"type": "object"}, strict=True
+            png(), schema={"type": "object"}
         )
         payload = json.loads(transport.calls[0][2])
         self.assertEqual(payload["contents"][0]["parts"][0]["inlineData"]["mimeType"], "image/png")

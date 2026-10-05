@@ -76,7 +76,7 @@ class VisionTests(unittest.TestCase):
         data["question"] = "A different question"
         self.assertNotEqual(before.fingerprint, parse_observation(json.dumps(data)).fingerprint)
 
-    def test_visual_inspection_uses_strict_api_mode(self):
+    def test_visual_inspection_requests_structured_output(self):
         class Client:
             def generate(self, image, prompt, **settings):
                 self.settings = settings
@@ -84,5 +84,4 @@ class VisionTests(unittest.TestCase):
 
         client = Client()
         Vision(client).inspect(b"image")
-        self.assertTrue(client.settings["strict"])
         self.assertIn("schema", client.settings)

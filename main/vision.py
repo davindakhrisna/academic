@@ -12,8 +12,9 @@ from .errors import AcademicError
 POINT_SCHEMA = {
     "type": "object",
     "properties": {
-        "x": {"type": "number", "minimum": 0, "maximum": 1000},
-        "y": {"type": "number", "minimum": 0, "maximum": 1000},
+        # Gemini can reject numeric bounds here; _point enforces them locally.
+        "x": {"type": "number"},
+        "y": {"type": "number"},
     },
     "required": ["x", "y"],
     "additionalProperties": False,
@@ -241,5 +242,4 @@ class Vision:
         self.client = client
 
     def inspect(self, image: bytes) -> Observation:
-        # Runner requests never rotate keys after an error or exhausted quota.
-        return parse_observation(self.client.generate(image, PROMPT, schema=SCHEMA, strict=True))
+        return parse_observation(self.client.generate(image, PROMPT, schema=SCHEMA))

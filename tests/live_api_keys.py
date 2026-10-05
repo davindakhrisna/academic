@@ -1,4 +1,4 @@
-"""Opt-in live checks: one vision request per API key, with no fallback."""
+"""Opt-in live checks: each API key plus the primary-key runner schema, with no fallback."""
 
 import os
 import unittest
@@ -14,6 +14,7 @@ from main.config import (
 )
 from main.errors import AcademicError
 from main.gemini import GeminiClient
+from main.vision import Vision
 from tests.helpers import png
 
 
@@ -27,7 +28,7 @@ def settings(environ=None):
     return values
 
 
-def probe(index, values, transport=None):
+def probe(index, values, transport=None, *, runner=False):
     name = KEY_NAMES[index]
     key = values.get(name, "")
     if not key or key.startswith("your_"):
@@ -36,11 +37,17 @@ def probe(index, values, transport=None):
         raise AcademicError(f"{name}: invalid key format.")
     model = validate_model(values.get("GEMINI_MODEL") or DEFAULT_MODEL)
     try:
-        answer = GeminiClient(Config(model, (key,)), transport).generate(
-            png(marker=255, width=64, height=64),
+        client = GeminiClient(Config(model, (key,)), transport)
+        image = png(marker=255, width=64, height=64)
+        if runner:
+            observation = Vision(client).inspect(image)
+            if observation.status != "not_question":
+                raise AcademicError("Runner did not identify the test image as a non-question.")
+            return
+        answer = client.generate(
+            image,
             "Identify the dominant color of this solid-color image. "
             "Reply with exactly RED, with no other text.",
-            strict=True,
         )
         if answer.strip().upper() != "RED":
             raise AcademicError("Vision response did not identify the red test image.")
@@ -56,7 +63,7 @@ class LiveApiKeyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.values = settings()
-        print("\nLive Gemini vision checks: three independent requests; quota/cost may apply.")
+        print("\nLive Gemini checks: three key requests and one runner request; quota/cost may apply.")
 
     def check_key(self, index):
         try:
@@ -72,6 +79,12 @@ class LiveApiKeyTests(unittest.TestCase):
 
     def test_03_tertiary_key(self):
         self.check_key(2)
+
+    def test_04_runner_schema(self):
+        try:
+            probe(0, self.values, runner=True)
+        except AcademicError as error:
+            self.fail(str(error))
 
 
 if __name__ == "__main__":

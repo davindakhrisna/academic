@@ -1,7 +1,9 @@
+import json
 import unittest
 
 from main.errors import AcademicError, ApiError
 from tests.live_api_keys import probe
+from tests.helpers import question, stop_screen
 from tests.test_gemini import Transport, response
 
 
@@ -22,6 +24,19 @@ class ApiKeySuiteTests(unittest.TestCase):
                 self.assertEqual(len(transport.calls), 1)
                 self.assertEqual(transport.calls[0][:2], ("test-model", key))
                 self.assertIn(b'"mimeType":"image/png"', transport.calls[0][2])
+
+    def test_runner_probe_uses_structured_request_and_validates_non_question(self):
+        transport = Transport([response([{"text": json.dumps(stop_screen())}])])
+        probe(0, self.values, transport, runner=True)
+        self.assertEqual(len(transport.calls), 1)
+        self.assertEqual(transport.calls[0][:2], ("test-model", "primary-secret"))
+        payload = json.loads(transport.calls[0][2])
+        self.assertIn("responseJsonSchema", payload["generationConfig"])
+        for data in (question(), {**stop_screen(), "next": question()["next"]}):
+            transport = Transport([response([{"text": json.dumps(data)}])])
+            with self.subTest(data=data), self.assertRaises(AcademicError):
+                probe(0, self.values, transport, runner=True)
+            self.assertEqual(len(transport.calls), 1)
 
     def test_quota_failure_never_falls_back_and_redacts_all_keys(self):
         transport = Transport([ApiError("primary-secret backup-secret tertiary-secret", 429)])
