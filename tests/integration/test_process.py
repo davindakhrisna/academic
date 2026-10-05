@@ -26,7 +26,7 @@ class ProcessTests(unittest.TestCase):
             work.mkdir()
             started = directory / "started"
             config = directory / ".env"
-            config.write_text("OPENROUTER_API_KEY=primary\n")
+            config.write_text("ROUTER_API_KEY=primary\n")
             grim = tools / "grim"
             grim.write_text(
                 f"#!{sys.executable}\nimport base64,sys\nsys.stdout.buffer.write(base64.b64decode({base64.b64encode(png()).decode()!r}))\n"

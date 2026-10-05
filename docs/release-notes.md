@@ -1,3 +1,13 @@
+# Unreleased — 9Router migration
+
+- Sends screenshot and runner requests to the local 9Router gateway using the
+  `Academic` combo; model fallback order is managed in 9Router.
+- Uses `ROUTER_BASE_URL`, `ROUTER_MODEL`, and optional `ROUTER_API_KEY` configuration.
+  `--set-model` changes the model or combo requested from the gateway.
+- Preserves screenshot inputs, structured runner observations, local action
+  validation, and one app request per question.
+- Published v0.2.1 binaries require rebuilding to include this migration.
+
 # Academia v0.2.1 — Linux Hyprland preview
 
 - Renames the Python application package to `main/`, preserving `python3 main.py`,

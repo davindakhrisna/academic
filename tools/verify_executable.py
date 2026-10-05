@@ -37,7 +37,7 @@ def main():
         for name in ("ACADEMIC_ENV_FILE", "SHELLCUT_ENV_FILE"):
             environment.pop(name, None)
         config = directory / ".env"
-        config.write_text("OPENROUTER_API_KEY=AQ.synthetic_key\nOPENROUTER_MODEL=test-model\n")
+        config.write_text("ROUTER_API_KEY=AQ.synthetic_key\nROUTER_MODEL=test-model\n")
         notices = directory / "notices"
         state = directory / "quiz.json"
         state.write_text(json.dumps({"question": 1, "x": 0, "y": 0, "requests": 0}))
@@ -121,8 +121,8 @@ else:
         check(
             "model_update_beside_executable_from_another_directory", ["--set-model", "smoke-model"]
         )
-        assert "OPENROUTER_MODEL=smoke-model" in config.read_text()
-        assert "OPENROUTER_API_KEY=AQ.synthetic_key" in config.read_text()
+        assert "ROUTER_MODEL=smoke-model" in config.read_text()
+        assert "ROUTER_API_KEY=AQ.synthetic_key" in config.read_text()
         check("screenshot_answer_notification_with_external_tools", [])
         assert "Option 2" in notices.read_text()
         check("clear_notifications", ["--clear"])
@@ -143,7 +143,7 @@ else:
         "platform": sys.platform,
         "executable_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
         "passed_checks": checks,
-        "live_openrouter_tested": False,
+        "live_9router_tested": False,
         "native_desktop_tested": False,
     }
     output = args.output

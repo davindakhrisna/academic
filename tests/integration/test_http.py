@@ -11,11 +11,11 @@ from unittest.mock import patch
 
 from main.config import Config
 from main.errors import ApiError
-from main.openrouter import CurlTransport, OpenRouterClient
+from main.router import RouterClient
 from main.runner import QuestionRunner
 from main.vision import Vision
 from tests.support.helpers import QuizDesktop, png, question
-from tests.support.openrouter import response
+from tests.support.router import response
 
 
 @unittest.skipUnless(shutil.which("curl"), "real curl integration requires curl")
@@ -43,7 +43,7 @@ class HttpTests(unittest.TestCase):
         self.thread.start()
         self.addCleanup(self.server.server_close)
         self.addCleanup(self.server.shutdown)
-        self.endpoint = f"http://127.0.0.1:{self.server.server_port}/api/v1/chat/completions"
+        self.endpoint = f"http://127.0.0.1:{self.server.server_port}/v1/chat/completions"
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.environment = patch.dict(
@@ -54,11 +54,11 @@ class HttpTests(unittest.TestCase):
         self.addCleanup(self.environment.stop)
 
     def client(self):
-        return OpenRouterClient(
-            Config("qwen/qwen3.8-27b:free", "primary"), CurlTransport(self.endpoint)
+        return RouterClient(
+            Config("Academic", "primary", self.endpoint.removesuffix("/chat/completions"))
         )
 
-    def test_real_post_single_key_native_model_fallback_and_png(self):
+    def test_real_post_academic_combo_and_png(self):
         self.replies[:] = [
             (
                 200,
@@ -72,18 +72,17 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(self.client().generate(png()), "Option 2")
         self.assertEqual(len(self.requests), 1)
         path, headers, raw = self.requests[0]
-        self.assertEqual(path, "/api/v1/chat/completions")
+        self.assertEqual(path, "/v1/chat/completions")
         self.assertEqual(headers["Authorization"], "Bearer primary")
         self.assertEqual(headers["Content-Type"], "application/json")
         payload = json.loads(raw)
-        self.assertEqual(
-            payload["models"], ["qwen/qwen3.8-27b:free", "deepseek/deepseek-v4.1-flash"]
-        )
+        self.assertEqual(payload["model"], "Academic")
+        self.assertNotIn("models", payload)
         image = payload["messages"][0]["content"][1]["image_url"]["url"]
         self.assertEqual(image.split(",", 1)[0], "data:image/png;base64")
         self.assertEqual(base64.b64decode(image.split(",", 1)[1]), png())
 
-    def test_router_errors_after_model_fallback_stop_without_key_rotation(self):
+    def test_router_errors_stop_without_key_rotation(self):
         for code in (400, 401, 402, 429, 503):
             self.replies[:] = [(code, {"error": {"message": "models failed primary"}})]
             self.requests.clear()
@@ -100,6 +99,14 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(caught.exception.status, 429)
         self.assertEqual(str(caught.exception), "HTTP 429: quota [redacted]")
         self.assertEqual(len(self.requests), 1)
+
+    def test_gateway_without_authentication_omits_authorization(self):
+        self.replies[:] = [(200, response())]
+        client = RouterClient(
+            Config("Academic", "", self.endpoint.removesuffix("/chat/completions"))
+        )
+        self.assertEqual(client.generate(png()), "A")
+        self.assertNotIn("Authorization", self.requests[0][1])
 
     def test_malformed_response_stops_without_input(self):
         for code, body in ((404, b"not found"), (200, b"not JSON")):
@@ -131,9 +138,8 @@ class HttpTests(unittest.TestCase):
             payload = json.loads(raw)
             self.assertEqual(headers["Authorization"], "Bearer primary")
             self.assertEqual(payload["response_format"]["type"], "json_schema")
-            self.assertEqual(
-                payload["models"], ["qwen/qwen3.8-27b:free", "deepseek/deepseek-v4.1-flash"]
-            )
+            self.assertEqual(payload["model"], "Academic")
+            self.assertNotIn("provider", payload)
             self.assertIn(
                 "options", payload["response_format"]["json_schema"]["schema"]["properties"]
             )

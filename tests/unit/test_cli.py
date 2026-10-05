@@ -62,7 +62,7 @@ class CliTests(unittest.TestCase):
             patch("main.cli.load_config", return_value=Config("model", "one")),
             patch("main.cli.require_commands"),
             patch("main.cli.capture_png", return_value=png()) as capture,
-            patch("main.cli.OpenRouterClient") as client,
+            patch("main.cli.RouterClient") as client,
             patch("main.cli.notifications.notify") as notify,
         ):
             client.return_value.generate.return_value = "A"

@@ -9,7 +9,7 @@ from .control import RunControl, request_stop
 from .desktop import create_desktop
 from .errors import AcademicError, Cancelled
 from .images import capture_png
-from .openrouter import OpenRouterClient
+from .router import RouterClient
 from .runner import QuestionRunner
 from .system import require_commands
 from .vision import Vision
@@ -35,7 +35,9 @@ def parser() -> argparse.ArgumentParser:
     )
     actions.add_argument("--simulate", "-s", action="store_true", help="Preview notifications")
     actions.add_argument("--notify", metavar="TEXT", help="Send a notification")
-    actions.add_argument("--set-model", metavar="MODEL", help="Update OPENROUTER_MODEL in .env")
+    actions.add_argument(
+        "--set-model", metavar="MODEL", help="Update ROUTER_MODEL (9Router combo) in .env"
+    )
     actions.add_argument(
         "--run", action="store_true", help="Start Question Runner in your current browser"
     )
@@ -72,7 +74,7 @@ def main(argv=None) -> int:
             notifications.notify(args.notify)
         elif args.set_model is not None:
             path = set_model(args.set_model)
-            print(f"OPENROUTER_MODEL={args.set_model} saved to {path}")
+            print(f"ROUTER_MODEL={args.set_model} saved to {path}")
         elif args.stop:
             request_stop()
             print("Stop requested. No new actions will start after the current operation returns.")
@@ -85,7 +87,7 @@ def main(argv=None) -> int:
                     raise AcademicError(str(error)) from None
             config = load_config()
             require_commands("curl")
-            client = OpenRouterClient(config)
+            client = RouterClient(config)
             if args.run:
                 if count is None:
                     raise AcademicError("Question Runner requires a question count.")

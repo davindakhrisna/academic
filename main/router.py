@@ -1,4 +1,4 @@
-"""OpenRouter vision requests, complete-answer parsing, and bounded HTTP transport."""
+"""9Router vision requests, complete-answer parsing, and bounded HTTP transport."""
 
 import base64
 import json
@@ -6,12 +6,12 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from .config import Config
+from .config import DEFAULT_BASE_URL, Config
 from .errors import AcademicError, ApiError
 from .images import png_size
 from .system import external_environment
 
-ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+ENDPOINT = DEFAULT_BASE_URL + "/chat/completions"
 REQUEST_LIMIT = 20_000_000
 RESPONSE_LIMIT = 4_194_304
 ANSWER_PROMPT = """Analyze the problem shown in the image and return ONLY the final answer(s).
@@ -58,7 +58,7 @@ class CurlTransport:
                 with external_environment() as environment:
                     result = subprocess.run(
                         args,
-                        input=f'header = "Authorization: Bearer {key}"\n'.encode(),
+                        input=(f'header = "Authorization: Bearer {key}"\n' if key else "").encode(),
                         capture_output=True,
                         timeout=125,
                         check=False,
@@ -127,18 +127,15 @@ def complete_text(body: dict) -> str:
     return text
 
 
-class OpenRouterClient:
+class RouterClient:
     def __init__(self, config: Config, transport=None):
         self.config = config
-        self.transport = transport or CurlTransport()
+        self.transport = transport or CurlTransport(config.base_url + "/chat/completions")
 
     def generate(self, image: bytes, prompt: str = ANSWER_PROMPT, *, schema=None) -> str:
         png_size(image)
-        models = [self.config.model]
-        if self.config.fallback_model and self.config.fallback_model != self.config.model:
-            models.append(self.config.fallback_model)
         payload: dict[str, object] = {
-            "models": models,
+            "model": self.config.model,
             "stream": False,
             "messages": [
                 {
@@ -161,7 +158,6 @@ class OpenRouterClient:
                 "type": "json_schema",
                 "json_schema": {"name": "observation", "strict": True, "schema": schema},
             }
-            payload["provider"] = {"require_parameters": True}
         serialized = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
         if len(serialized) >= REQUEST_LIMIT:
             raise AcademicError("Screenshot is too large for the app's 20 MB request budget.")
@@ -169,5 +165,7 @@ class OpenRouterClient:
             body = self.transport.post(self.config.key, serialized)
             return complete_text(body)
         except ApiError as failure:
-            message = str(failure).replace(self.config.key, "[redacted]")
+            message = str(failure)
+            if self.config.key:
+                message = message.replace(self.config.key, "[redacted]")
             raise ApiError(message, failure.status) from None

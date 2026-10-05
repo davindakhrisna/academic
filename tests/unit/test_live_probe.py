@@ -3,21 +3,21 @@ import unittest
 
 from main.config import Config
 from main.errors import AcademicError
-from tests.live.openrouter import probe
+from tests.live.router import probe
 from tests.support.helpers import question, stop_screen
-from tests.support.openrouter import Transport, response
+from tests.support.router import Transport, response
 
 
 class LiveProbeTests(unittest.TestCase):
     def setUp(self):
-        self.config = Config("qwen/qwen3.8-27b:free", "secret")
+        self.config = Config("Academic", "secret")
 
-    def test_screenshot_probe_uses_single_key_with_model_fallback(self):
+    def test_screenshot_probe_uses_academic_combo(self):
         transport = Transport([response("RED")])
         probe(self.config, transport)
         self.assertEqual(len(transport.calls), 1)
-        models, key, raw = transport.calls[0]
-        self.assertEqual(models, ["qwen/qwen3.8-27b:free", "deepseek/deepseek-v4.1-flash"])
+        model, key, raw = transport.calls[0]
+        self.assertEqual(model, "Academic")
         self.assertEqual(key, "secret")
         self.assertIn(b"data:image/png;base64,", raw)
 

@@ -8,6 +8,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .errors import AcademicError
 
@@ -16,8 +17,8 @@ ROOT = (
     if getattr(sys, "frozen", False)
     else Path(__file__).resolve().parent.parent
 )
-DEFAULT_MODEL = "qwen/qwen3.8-27b:free"
-DEFAULT_FALLBACK_MODEL = "deepseek/deepseek-v4.1-flash"
+DEFAULT_MODEL = "Academic"
+DEFAULT_BASE_URL = "http://127.0.0.1:20128/v1"
 KEY_PATTERN = re.compile(r"[A-Za-z0-9._-]+\Z")
 ASSIGNMENT = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$")
 MODEL = re.compile(
@@ -29,8 +30,8 @@ MODEL = re.compile(
 @dataclass(frozen=True)
 class Config:
     model: str
-    key: str = field(repr=False)
-    fallback_model: str = DEFAULT_FALLBACK_MODEL
+    key: str = field(default="", repr=False)
+    base_url: str = DEFAULT_BASE_URL
 
 
 def config_path(environ=None, root: Path = ROOT, home: Path | None = None) -> Path:
@@ -72,8 +73,28 @@ def read_env(path: Path) -> tuple[str, dict[str, str]]:
 
 def validate_model(model: str) -> str:
     if not MODEL.fullmatch(model):
-        raise AcademicError("Invalid OpenRouter model ID; use provider/model:variant.")
+        raise AcademicError("Invalid 9Router model or combo name.")
     return model
+
+
+def validate_base_url(value: str) -> str:
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        raise AcademicError("Invalid ROUTER_BASE_URL; use an HTTP(S) API base URL.") from None
+    if (
+        parsed.scheme not in ("http", "https")
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or any(character.isspace() or ord(character) < 32 for character in value)
+        or port == 0
+    ):
+        raise AcademicError("Invalid ROUTER_BASE_URL; use an HTTP(S) API base URL.")
+    return value.rstrip("/")
 
 
 def load_config(environ=None, path: Path | None = None) -> Config:
@@ -84,18 +105,14 @@ def load_config(environ=None, path: Path | None = None) -> Config:
         values.update(read_env(path)[1])
     elif environ.get("ACADEMIC_ENV_FILE") or environ.get("SHELLCUT_ENV_FILE"):
         raise AcademicError(f"Configuration file does not exist: {path}")
-    model = validate_model(values.get("OPENROUTER_MODEL") or DEFAULT_MODEL)
-    fallback = values.get("OPENROUTER_FALLBACK_MODEL", DEFAULT_FALLBACK_MODEL)
-    if fallback:
-        validate_model(fallback)
-    key = values.get("OPENROUTER_API_KEY", "")
-    if not key:
-        raise AcademicError("No OpenRouter API key configured; set OPENROUTER_API_KEY in .env.")
-    if not KEY_PATTERN.fullmatch(key):
+    model = validate_model(values.get("ROUTER_MODEL") or DEFAULT_MODEL)
+    base_url = validate_base_url(values.get("ROUTER_BASE_URL") or DEFAULT_BASE_URL)
+    key = values.get("ROUTER_API_KEY", "")
+    if key and not KEY_PATTERN.fullmatch(key):
         raise AcademicError("Invalid API key format in configuration.")
     if key.startswith("your_"):
         raise AcademicError("Replace placeholder API key in .env before solving.")
-    return Config(model, key, fallback)
+    return Config(model, key, base_url)
 
 
 def set_model(model: str, path: Path | None = None) -> Path:
@@ -105,9 +122,9 @@ def set_model(model: str, path: Path | None = None) -> Path:
     lines = [
         line
         for line in text.splitlines()
-        if not (match := ASSIGNMENT.fullmatch(line)) or match[1] != "OPENROUTER_MODEL"
+        if not (match := ASSIGNMENT.fullmatch(line)) or match[1] != "ROUTER_MODEL"
     ]
-    updated = "\n".join([*lines, f"OPENROUTER_MODEL={model}"]) + "\n"
+    updated = "\n".join([*lines, f"ROUTER_MODEL={model}"]) + "\n"
     parse_env(updated)
     temporary = None
     try:

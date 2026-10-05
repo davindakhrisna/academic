@@ -57,7 +57,7 @@ def main():
             str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in sorted((ROOT / "tools").glob("*.py"))
         },
-        "live_openrouter_tested": False,
+        "live_9router_tested": False,
         "native_hyprland_tested": False,
         "native_windows_gui_tested": any(
             "WindowsNativeTests" in test for test in result.passed_ids

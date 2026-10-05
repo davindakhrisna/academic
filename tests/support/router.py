@@ -1,4 +1,4 @@
-"""Synthetic OpenRouter responses and an in-memory transport."""
+"""Synthetic chat completion responses and an in-memory transport."""
 
 import json
 
@@ -20,7 +20,7 @@ class Transport:
         self.calls = []
 
     def post(self, key, payload):
-        self.calls.append((json.loads(payload)["models"], key, payload))
+        self.calls.append((json.loads(payload)["model"], key, payload))
         result = self.replies.pop(0)
         if isinstance(result, Exception):
             raise result
