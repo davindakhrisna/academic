@@ -3,9 +3,9 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from academia.config import Config
-from academia.errors import AcademicError, ApiError
-from academia.openrouter import CurlTransport, OpenRouterClient, complete_text
+from main.config import Config
+from main.errors import AcademicError, ApiError
+from main.openrouter import CurlTransport, OpenRouterClient, complete_text
 from tests.support.helpers import png
 from tests.support.openrouter import Transport, response
 
@@ -86,7 +86,7 @@ class OpenRouterTests(unittest.TestCase):
 
     def test_oversized_payload_is_rejected_before_networking(self):
         transport = Transport([])
-        with patch("academia.openrouter.REQUEST_LIMIT", 1), self.assertRaises(AcademicError):
+        with patch("main.openrouter.REQUEST_LIMIT", 1), self.assertRaises(AcademicError):
             OpenRouterClient(Config("model", "secret"), transport).generate(png())
         self.assertEqual(transport.calls, [])
 
@@ -100,7 +100,7 @@ class OpenRouterTests(unittest.TestCase):
         for failure in (subprocess.TimeoutExpired("curl", 125), OSError()):
             with (
                 self.subTest(failure=failure),
-                patch("academia.openrouter.subprocess.run", side_effect=failure),
+                patch("main.openrouter.subprocess.run", side_effect=failure),
                 self.assertRaises(ApiError),
             ):
                 CurlTransport().post("one", b"{}")

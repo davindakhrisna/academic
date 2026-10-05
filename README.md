@@ -6,7 +6,7 @@ This release ships Linux x86_64 binaries only. Python source requires 3.11+.
 ## Start
 
 1. Install `curl`, `grim`, `hyprctl`, and `notify-send`; run inside Hyprland.
-2. Download [v0.2.0](https://github.com/davindakhrisna/academic/releases/tag/v0.2.0).
+2. Download [v0.2.1](https://github.com/davindakhrisna/academic/releases/tag/v0.2.1).
    Use the `linux-x86_64` archive on glibc 2.31+ systems, or the `linux-x86_64-nixos`
    archive on NixOS. Extract it and keep the files together.
 3. Copy `.env.example` to `.env`, then set `OPENROUTER_API_KEY`.
@@ -32,7 +32,7 @@ leave `OPENROUTER_FALLBACK_MODEL=` empty to disable it.
 
 Keep `.env` beside the executable, or set `ACADEMIC_ENV_FILE` to its path.
 Ctrl+C also stops the runner. For source runs, use `python3 main.py` with the
-same arguments, or `python3 -m academia`.
+same arguments, or `python3 -m main`.
 
 ## Runner behavior
 
@@ -67,7 +67,7 @@ docker build -f tools/Dockerfile.linux -t academia-builder .
 docker run --rm -v "$PWD/dist/linux:/out" academia-builder
 ```
 
-`academia/` contains the app; `tests/` separates unit, integration, live, native,
+`main/` contains the app; `tests/` separates unit, integration, live, native,
 and support files; `tools/` holds build/verification commands; `artifacts/verification/`
 holds evidence. Live API checks are opt-in: `python3 -m tests.live.openrouter`.
 They may use the paid fallback. See [release notes](docs/release-notes.md).

@@ -7,10 +7,10 @@ import sys
 import time
 import unittest
 
-from academia.images import png_size
-from academia.runner import QuestionRunner
-from academia.vision import parse_observation
-from academia.windows import Input, WindowsAPI, WindowsDesktop
+from main.images import png_size
+from main.runner import QuestionRunner
+from main.vision import parse_observation
+from main.windows import Input, WindowsAPI, WindowsDesktop
 
 
 @unittest.skipUnless(sys.platform == "win32", "native Windows ABI test requires Windows")

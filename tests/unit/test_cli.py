@@ -6,10 +6,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from academia.cli import main
-from academia.config import Config
-from academia.control import RunControl
-from academia.errors import AcademicError, Cancelled
+from main.cli import main
+from main.config import Config
+from main.control import RunControl
+from main.errors import AcademicError, Cancelled
 from tests.support.helpers import QuizDesktop, QuizVision, png
 
 
@@ -21,7 +21,7 @@ class CliTests(unittest.TestCase):
 
     def test_help_does_not_load_configuration_or_capture(self):
         with (
-            patch("academia.cli.load_config") as config,
+            patch("main.cli.load_config") as config,
             self.assertRaises(SystemExit) as exit_status,
         ):
             self.call(["--help"])
@@ -36,8 +36,8 @@ class CliTests(unittest.TestCase):
         ):
             with (
                 self.subTest(argv=argv),
-                patch(f"academia.cli.notifications.{function}") as operation,
-                patch("academia.cli.load_config") as config,
+                patch(f"main.cli.notifications.{function}") as operation,
+                patch("main.cli.load_config") as config,
             ):
                 self.assertEqual(self.call(argv), 0)
                 operation.assert_called_once()
@@ -59,11 +59,11 @@ class CliTests(unittest.TestCase):
 
     def test_normal_solver_captures_and_notifies(self):
         with (
-            patch("academia.cli.load_config", return_value=Config("model", "one")),
-            patch("academia.cli.require_commands"),
-            patch("academia.cli.capture_png", return_value=png()) as capture,
-            patch("academia.cli.OpenRouterClient") as client,
-            patch("academia.cli.notifications.notify") as notify,
+            patch("main.cli.load_config", return_value=Config("model", "one")),
+            patch("main.cli.require_commands"),
+            patch("main.cli.capture_png", return_value=png()) as capture,
+            patch("main.cli.OpenRouterClient") as client,
+            patch("main.cli.notifications.notify") as notify,
         ):
             client.return_value.generate.return_value = "A"
             self.assertEqual(self.call([]), 0)
@@ -71,7 +71,7 @@ class CliTests(unittest.TestCase):
         notify.assert_called_once_with("A")
 
     def test_model_update_routing(self):
-        with patch("academia.cli.set_model", return_value=Path("settings.env")) as save:
+        with patch("main.cli.set_model", return_value=Path("settings.env")) as save:
             self.assertEqual(self.call(["--set-model", "new-model"]), 0)
         save.assert_called_once_with("new-model")
 
@@ -79,18 +79,18 @@ class CliTests(unittest.TestCase):
         desktop = QuizDesktop()
         with (
             tempfile.TemporaryDirectory() as directory,
-            patch("academia.cli.load_config", return_value=Config("model", "one")),
-            patch("academia.cli.require_commands"),
-            patch("academia.cli.create_desktop", return_value=desktop),
-            patch("academia.cli.Vision", return_value=QuizVision(desktop)),
-            patch("academia.cli.RunControl", side_effect=lambda: RunControl(Path(directory))),
+            patch("main.cli.load_config", return_value=Config("model", "one")),
+            patch("main.cli.require_commands"),
+            patch("main.cli.create_desktop", return_value=desktop),
+            patch("main.cli.Vision", return_value=QuizVision(desktop)),
+            patch("main.cli.RunControl", side_effect=lambda: RunControl(Path(directory))),
             patch("builtins.input", return_value="1"),
         ):
             # Constructor defaults bind at definition time; inject an immediate clock.
-            from academia.runner import QuestionRunner
+            from main.runner import QuestionRunner
 
             with patch(
-                "academia.cli.QuestionRunner",
+                "main.cli.QuestionRunner",
                 side_effect=lambda *a, **kw: QuestionRunner(*a, **kw, sleep=lambda _: None),
             ):
                 self.assertEqual(self.call(["--run"]), 0)
@@ -105,21 +105,21 @@ class CliTests(unittest.TestCase):
         ):
             with (
                 self.subTest(error=error),
-                patch("academia.cli.load_config", side_effect=error),
-                patch("academia.cli.notifications.report_error"),
+                patch("main.cli.load_config", side_effect=error),
+                patch("main.cli.notifications.report_error"),
             ):
                 self.assertEqual(self.call([]), expected)
 
     def test_sigterm_handler_is_restored(self):
         previous = signal.getsignal(signal.SIGTERM)
-        with patch("academia.cli.notifications.notify"):
+        with patch("main.cli.notifications.notify"):
             self.assertEqual(self.call(["--notify", "Hi"]), 0)
         self.assertEqual(signal.getsignal(signal.SIGTERM), previous)
 
     def test_stop_command_does_not_load_keys(self):
         with (
-            patch("academia.cli.request_stop") as stop,
-            patch("academia.cli.load_config") as config,
+            patch("main.cli.request_stop") as stop,
+            patch("main.cli.load_config") as config,
         ):
             self.assertEqual(self.call(["--stop"]), 0)
         stop.assert_called_once()
@@ -134,8 +134,8 @@ class CliTests(unittest.TestCase):
                     side_effect=answer if isinstance(answer, Exception) else None,
                     return_value=answer,
                 ),
-                patch("academia.cli.load_config") as config,
-                patch("academia.cli.notifications.report_error"),
+                patch("main.cli.load_config") as config,
+                patch("main.cli.notifications.report_error"),
             ):
                 self.assertEqual(self.call(["--run"]), 1)
                 config.assert_not_called()

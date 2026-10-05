@@ -1,8 +1,8 @@
 import json
 import unittest
 
-from academia.errors import AcademicError
-from academia.vision import Vision, parse_observation
+from main.errors import AcademicError
+from main.vision import Vision, parse_observation
 from tests.support.helpers import png, question, stop_screen
 
 

@@ -2,10 +2,10 @@
 
 import unittest
 
-from academia.config import load_config
-from academia.errors import AcademicError
-from academia.openrouter import OpenRouterClient
-from academia.vision import Vision
+from main.config import load_config
+from main.errors import AcademicError
+from main.openrouter import OpenRouterClient
+from main.vision import Vision
 from tests.support.helpers import png
 
 

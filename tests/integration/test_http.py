@@ -9,11 +9,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
-from academia.config import Config
-from academia.errors import ApiError
-from academia.openrouter import CurlTransport, OpenRouterClient
-from academia.runner import QuestionRunner
-from academia.vision import Vision
+from main.config import Config
+from main.errors import ApiError
+from main.openrouter import CurlTransport, OpenRouterClient
+from main.runner import QuestionRunner
+from main.vision import Vision
 from tests.support.helpers import QuizDesktop, png, question
 from tests.support.openrouter import response
 

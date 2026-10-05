@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from academia import config
-from academia.system import external_environment
+from main import config
+from main.system import external_environment
 
 
 class FrozenTests(unittest.TestCase):
@@ -49,7 +49,7 @@ class FrozenTests(unittest.TestCase):
             patch.object(sys, "frozen", True, create=True),
             patch.object(sys, "_MEIPASS", "bundle", create=True),
             patch.object(sys, "platform", "win32"),
-            patch("academia.system.ctypes.windll", library, create=True),
+            patch("main.system.ctypes.windll", library, create=True),
             self.assertRaises(RuntimeError),
             external_environment(),
         ):

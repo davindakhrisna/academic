@@ -1,6 +1,6 @@
 *
-!academia/
-!academia/**
+!main/
+!main/**
 !tests/
 !tests/**
 !tools/

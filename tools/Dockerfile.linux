@@ -5,7 +5,7 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
     && apt-get update && apt-get install -y --no-install-recommends binutils curl \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /work
-COPY academia academia
+COPY main main
 COPY tests tests
 COPY tools tools
 COPY main.py pyproject.toml ./

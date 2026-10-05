@@ -2,10 +2,10 @@ import json
 import unittest
 from unittest.mock import patch
 
-from academia.desktop import Frame, HyprlandDesktop, Window, screen_point
-from academia.errors import AcademicError, Cancelled
-from academia.vision import Point
-from academia.windows import WindowsDesktop
+from main.desktop import Frame, HyprlandDesktop, Window, screen_point
+from main.errors import AcademicError, Cancelled
+from main.vision import Point
+from main.windows import WindowsDesktop
 from tests.support.helpers import QuizDesktop, png
 
 
@@ -91,9 +91,9 @@ class DesktopTests(unittest.TestCase):
             }
             with (
                 self.subTest(application=application),
-                patch("academia.desktop.require_commands"),
+                patch("main.desktop.require_commands"),
                 patch.dict("os.environ", {"HYPRLAND_INSTANCE_SIGNATURE": "test"}),
-                patch("academia.desktop.run_command", return_value=json.dumps(active).encode()),
+                patch("main.desktop.run_command", return_value=json.dumps(active).encode()),
             ):
                 desktop = HyprlandDesktop()
                 desktop.grab = lambda bounds: png()
@@ -106,9 +106,9 @@ class DesktopTests(unittest.TestCase):
             WindowsDesktop(api=api, grab=lambda bounds: png()).capture()
         active = {"class": "terminal-helium"}
         with (
-            patch("academia.desktop.require_commands"),
+            patch("main.desktop.require_commands"),
             patch.dict("os.environ", {"HYPRLAND_INSTANCE_SIGNATURE": "test"}),
-            patch("academia.desktop.run_command", return_value=json.dumps(active).encode()),
+            patch("main.desktop.run_command", return_value=json.dumps(active).encode()),
             self.assertRaises(AcademicError),
         ):
             HyprlandDesktop().window()
@@ -148,7 +148,7 @@ class DesktopTests(unittest.TestCase):
 
     def test_hyprland_requires_a_desktop_session(self):
         with (
-            patch("academia.desktop.require_commands"),
+            patch("main.desktop.require_commands"),
             patch.dict("os.environ", {}, clear=True),
             self.assertRaisesRegex(AcademicError, "desktop session"),
         ):
@@ -163,9 +163,9 @@ class DesktopTests(unittest.TestCase):
             "title": "Not a browser",
         }
         with (
-            patch("academia.desktop.require_commands"),
+            patch("main.desktop.require_commands"),
             patch.dict("os.environ", {"HYPRLAND_INSTANCE_SIGNATURE": "test"}),
-            patch("academia.desktop.run_command", return_value=json.dumps(active).encode()),
+            patch("main.desktop.run_command", return_value=json.dumps(active).encode()),
             self.assertRaisesRegex(AcademicError, "not a supported browser"),
         ):
             HyprlandDesktop().window()
@@ -200,9 +200,9 @@ class DesktopTests(unittest.TestCase):
 
             with (
                 self.subTest(lua=lua),
-                patch("academia.desktop.require_commands"),
+                patch("main.desktop.require_commands"),
                 patch.dict("os.environ", {"HYPRLAND_INSTANCE_SIGNATURE": "test"}),
-                patch("academia.desktop.run_command", side_effect=dispatch),
+                patch("main.desktop.run_command", side_effect=dispatch),
             ):
                 desktop = HyprlandDesktop()
                 desktop.grab = lambda bounds: png()
@@ -219,9 +219,9 @@ class DesktopTests(unittest.TestCase):
 
     def test_hyprland_unknown_dispatch_syntax_sends_no_input(self):
         with (
-            patch("academia.desktop.require_commands"),
+            patch("main.desktop.require_commands"),
             patch.dict("os.environ", {"HYPRLAND_INSTANCE_SIGNATURE": "test"}),
-            patch("academia.desktop.run_command", return_value=b"unexpected response") as command,
+            patch("main.desktop.run_command", return_value=b"unexpected response") as command,
         ):
             desktop = HyprlandDesktop()
             with self.assertRaisesRegex(AcademicError, "dispatch syntax"):
@@ -247,9 +247,9 @@ class DesktopTests(unittest.TestCase):
             return b"ok"
 
         with (
-            patch("academia.desktop.require_commands"),
+            patch("main.desktop.require_commands"),
             patch.dict("os.environ", {"HYPRLAND_INSTANCE_SIGNATURE": "test"}),
-            patch("academia.desktop.run_command", side_effect=command),
+            patch("main.desktop.run_command", side_effect=command),
         ):
             desktop = HyprlandDesktop()
             desktop.grab = lambda bounds: png()

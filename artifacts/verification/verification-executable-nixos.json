@@ -1,7 +1,7 @@
 {
   "successful": true,
   "platform": "linux",
-  "executable_sha256": "c29583d35a426a4982e20fae43b907d0f0e1aa4d05bd9d863fbf2f61a36f7f38",
+  "executable_sha256": "c697029bf5c660de3a1b06e5757ce0a711317a19bf52b0e40f05c1738d83d544",
   "passed_checks": [
     "help_without_python_on_path",
     "invalid_arguments",

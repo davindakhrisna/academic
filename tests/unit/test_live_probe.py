@@ -1,8 +1,8 @@
 import json
 import unittest
 
-from academia.config import Config
-from academia.errors import AcademicError
+from main.config import Config
+from main.errors import AcademicError
 from tests.live.openrouter import probe
 from tests.support.helpers import question, stop_screen
 from tests.support.openrouter import Transport, response

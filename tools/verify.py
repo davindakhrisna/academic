@@ -29,7 +29,7 @@ def main():
     args = parser.parse_args()
     suite = unittest.defaultTestLoader.discover(str(ROOT / "tests"), top_level_dir=str(ROOT))
     result = unittest.TextTestRunner(verbosity=2, resultclass=EvidenceResult).run(suite)
-    source_files = sorted((ROOT / "academia").glob("*.py")) + [
+    source_files = sorted((ROOT / "main").glob("*.py")) + [
         ROOT / "main.py",
         ROOT / "tools" / "build.py",
         ROOT / "pyproject.toml",

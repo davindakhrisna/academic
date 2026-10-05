@@ -4,8 +4,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from academia.config import DEFAULT_MODEL, config_path, load_config, parse_env, set_model
-from academia.errors import AcademicError
+from main.config import DEFAULT_MODEL, config_path, load_config, parse_env, set_model
+from main.errors import AcademicError
 
 
 class ConfigTests(unittest.TestCase):
@@ -127,7 +127,7 @@ class ConfigTests(unittest.TestCase):
         self.path.write_text("OPENROUTER_API_KEY=secret\n")
         before = self.path.read_bytes()
         with (
-            patch("academia.config.os.replace", side_effect=OSError),
+            patch("main.config.os.replace", side_effect=OSError),
             self.assertRaises(AcademicError),
         ):
             set_model("new", self.path)

@@ -1,3 +1,11 @@
+# Academia v0.2.1 — Linux Hyprland preview
+
+- Renames the Python application package to `main/`, preserving `python3 main.py`,
+  `python3 -m main`, and the installed `academic` command.
+- Updates imports, test mocks, packaging, and Docker build paths.
+- Retains dedicated test suites, the concise README, and all v0.2.0 behavior.
+- Rebuilds and verifies both Linux release variants.
+
 # Academia v0.2.0 — Linux Hyprland preview
 
 - Linux x86_64 builds for glibc 2.31+ and NixOS; no Windows release assets.

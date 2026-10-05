@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from academia.control import RunControl, request_stop
-from academia.errors import AcademicError, Cancelled
+from main.control import RunControl, request_stop
+from main.errors import AcademicError, Cancelled
 
 
 class ControlTests(unittest.TestCase):
@@ -43,7 +43,7 @@ class ControlTests(unittest.TestCase):
 
     def test_lock_closes_when_resetting_stop_file_fails(self):
         control = RunControl(self.directory)
-        with patch("academia.control.Path.unlink", side_effect=OSError), self.assertRaises(OSError):
+        with patch("main.control.Path.unlink", side_effect=OSError), self.assertRaises(OSError):
             control.__enter__()
         self.assertIsNone(control.lock)
         with RunControl(self.directory):

@@ -3,8 +3,8 @@ import json
 import struct
 import zlib
 
-from academia.desktop import Desktop, Window
-from academia.vision import parse_observation
+from main.desktop import Desktop, Window
+from main.vision import parse_observation
 
 
 def png(marker=0, width=8, height=8):

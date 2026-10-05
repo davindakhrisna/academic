@@ -1,7 +1,7 @@
 import unittest
 
-from academia.errors import AcademicError, ApiError, Cancelled
-from academia.runner import QuestionRunner
+from main.errors import AcademicError, ApiError, Cancelled
+from main.runner import QuestionRunner
 from tests.support.helpers import QuizDesktop, QuizVision, question, stop_screen
 
 

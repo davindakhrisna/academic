@@ -2,8 +2,8 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from academia.errors import AcademicError
-from academia.system import run_command
+from main.errors import AcademicError
+from main.system import run_command
 
 
 class SystemTests(unittest.TestCase):
@@ -16,7 +16,7 @@ class SystemTests(unittest.TestCase):
             result = subprocess.CompletedProcess(args, 7, stdout, stderr)
             with (
                 self.subTest(stderr=stderr),
-                patch("academia.system.subprocess.run", return_value=result),
+                patch("main.system.subprocess.run", return_value=result),
                 self.assertRaises(AcademicError) as caught,
             ):
                 run_command(args)
@@ -27,7 +27,7 @@ class SystemTests(unittest.TestCase):
         args = ["notify-send", "private text"]
         result = subprocess.CompletedProcess(args, 1, b"private stdout", b"private stderr")
         with (
-            patch("academia.system.subprocess.run", return_value=result),
+            patch("main.system.subprocess.run", return_value=result),
             self.assertRaises(AcademicError) as caught,
         ):
             run_command(args)
