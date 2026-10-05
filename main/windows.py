@@ -2,6 +2,7 @@
 
 import ctypes
 import sys
+from contextlib import contextmanager
 from ctypes import wintypes
 from pathlib import PureWindowsPath
 
@@ -61,8 +62,10 @@ class WindowsAPI:
             ctypes.POINTER(wintypes.DWORD),
         )
         self.user32.IsIconic.argtypes = (wintypes.HWND,)
-        self.user32.SetCursorPos.argtypes = (ctypes.c_int, ctypes.c_int)
-        self.user32.GetCursorPos.argtypes = (ctypes.POINTER(wintypes.POINT),)
+        self.user32.SetPhysicalCursorPos.argtypes = (ctypes.c_int, ctypes.c_int)
+        self.user32.SetPhysicalCursorPos.restype = wintypes.BOOL
+        self.user32.GetPhysicalCursorPos.argtypes = (ctypes.POINTER(wintypes.POINT),)
+        self.user32.GetPhysicalCursorPos.restype = wintypes.BOOL
         self.user32.SendInput.argtypes = (wintypes.UINT, ctypes.POINTER(Input), ctypes.c_int)
         self.user32.SendInput.restype = wintypes.UINT
         self.kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
@@ -76,15 +79,27 @@ class WindowsAPI:
         self.kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
         self.user32.SetProcessDpiAwarenessContext.argtypes = (ctypes.c_void_p,)
         self.user32.SetProcessDpiAwarenessContext.restype = wintypes.BOOL
-        if not self.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)):
-            # An embedding host may already have selected DPI awareness. Set the
-            # calling thread explicitly so capture and input still use physical pixels.
-            self.user32.SetThreadDpiAwarenessContext.argtypes = (ctypes.c_void_p,)
-            self.user32.SetThreadDpiAwarenessContext.restype = ctypes.c_void_p
-            if not self.user32.SetThreadDpiAwarenessContext(ctypes.c_void_p(-4)):
-                raise AcademicError("Cannot enable per-monitor DPI awareness on Windows.")
+        # A host or executable manifest may have already set the process policy.
+        # Window geometry must also opt in on the thread making each query.
+        self.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+        self.user32.SetThreadDpiAwarenessContext.argtypes = (ctypes.c_void_p,)
+        self.user32.SetThreadDpiAwarenessContext.restype = ctypes.c_void_p
+
+    @contextmanager
+    def physical_pixels(self):
+        previous = self.user32.SetThreadDpiAwarenessContext(ctypes.c_void_p(-4))
+        if not previous:
+            raise AcademicError("Cannot enable per-monitor DPI awareness on Windows.")
+        try:
+            yield
+        finally:
+            self.user32.SetThreadDpiAwarenessContext(previous)
 
     def window_info(self) -> tuple[str, Window]:
+        with self.physical_pixels():
+            return self._window_info()
+
+    def _window_info(self) -> tuple[str, Window]:
         handle = self.user32.GetForegroundWindow()
         if not handle or self.user32.IsIconic(handle):
             raise AcademicError("Use an unlocked Windows desktop with the browser focused.")
@@ -103,25 +118,28 @@ class WindowsAPI:
         finally:
             self.kernel32.CloseHandle(process)
         rect = wintypes.RECT()
-        origin = wintypes.POINT(0, 0)
-        if not self.user32.GetClientRect(
-            handle, ctypes.byref(rect)
-        ) or not self.user32.ClientToScreen(handle, ctypes.byref(origin)):
+        if not self.user32.GetClientRect(handle, ctypes.byref(rect)):
+            raise AcademicError("Cannot locate the Windows browser client area.")
+        origin = wintypes.POINT(rect.left, rect.top)
+        corner = wintypes.POINT(rect.right, rect.bottom)
+        if not self.user32.ClientToScreen(
+            handle, ctypes.byref(origin)
+        ) or not self.user32.ClientToScreen(handle, ctypes.byref(corner)):
             raise AcademicError("Cannot locate the Windows browser client area.")
         title = ctypes.create_unicode_buffer(8192)
         self.user32.GetWindowTextW(handle, title, len(title))
         window = Window(
             str(handle),
-            (origin.x, origin.y, origin.x + rect.right, origin.y + rect.bottom),
+            (origin.x, origin.y, corner.x, corner.y),
             title.value,
         )
         return PureWindowsPath(executable.value).name.lower(), window
 
     def move(self, position) -> None:
-        if not self.user32.SetCursorPos(*position):
+        if not self.user32.SetPhysicalCursorPos(*position):
             raise AcademicError("Windows could not position the cursor.")
         actual = wintypes.POINT()
-        if not self.user32.GetCursorPos(ctypes.byref(actual)) or (actual.x, actual.y) != position:
+        if not self.user32.GetPhysicalCursorPos(ctypes.byref(actual)) or (actual.x, actual.y) != position:
             raise AcademicError("Cursor did not reach the expected Windows position.")
 
     def click(self) -> None:

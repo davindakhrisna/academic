@@ -92,10 +92,13 @@ y=1000 at bottom. Point to the CENTER of each actual checkbox/radio control, not
 Every returned x and y must be a finite number strictly greater than 0 and less than 1000.
 Never return screenshot pixel coordinates or desktop coordinates. Convert screenshot pixels
 with x = 1000 * pixel_x / screenshot_width and y = 1000 * pixel_y / screenshot_height.
+Keep fractional coordinates when needed; do not round to a coarse grid. Locate each control
+individually from its visible edges rather than estimating a shared row or column position.
 If a control cannot be located inside the screenshot, use status ambiguous with no actions;
 if only Next is missing or off-screen, set next to null instead of inventing its coordinates.
 answer_ids lists every correct option ID, exactly one for single selection.
-next may identify a visible enabled button that goes to the NEXT QUESTION only. Never identify
+next may identify a visible enabled button that goes to the NEXT QUESTION only. Its point must
+be at the center of the visible button, away from its border or surrounding padding. Never identify
 a final Submit, Finish, End, hand-in, payment, or unrelated control as next. If no unambiguous
 next-question control is visible, next must be null. Do not navigate or emit arbitrary actions."""
 
