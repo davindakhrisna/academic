@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "academic-helper"
-version = "0.1.0"
-description = "Academic screenshot helper with a guarded Question Runner"
+version = "0.2.0"
+description = "Academia screenshot helper and Question Runner for Linux Hyprland"
 requires-python = ">=3.11"
 dependencies = ["Pillow>=11; sys_platform == 'win32'"]
 
@@ -13,10 +13,10 @@ dependencies = ["Pillow>=11; sys_platform == 'win32'"]
 build = ["pyinstaller>=6.16,<7"]
 
 [project.scripts]
-academic = "main.cli:main"
+academic = "academia.cli:main"
 
 [tool.setuptools]
-packages = ["main"]
+packages = ["academia"]
 
 [tool.ruff]
 line-length = 100

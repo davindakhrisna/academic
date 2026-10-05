@@ -1,0 +1,11 @@
+*
+!academia/
+!academia/**
+!tests/
+!tests/**
+!tools/
+!tools/**
+!main.py
+!pyproject.toml
+**/__pycache__/
+**/*.pyc
