@@ -1,7 +1,9 @@
+# Ignore generated analysis/report output
+graphify-out/** linguist-generated
+graphify-out/**/*.html linguist-generated
+
+# Also ignore generated artifacts
+artifacts/** linguist-generated
+
 # Exclude HTML files from language detection if they're templates or generated
 *.html linguist-vendored
-# Or, if HTML files are truly generated/not your code:
-docs/*.html linguist-generated
-# Exclude other non-code HTML:
-build/**/*.html linguist-generated
-dist/**/*.html linguist-generated
