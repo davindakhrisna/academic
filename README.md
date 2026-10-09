@@ -36,23 +36,6 @@ Keep `.env` beside the executable, or set `ACADEMIC_ENV_FILE` to its path.
 Ctrl+C also stops the runner. For source runs, use `python3 main.py` with the
 same arguments, or `python3 -m main`.
 
-## Runner behavior
-
-Each new question uses one API call for answers and Next coordinates. The runner
-selects answers and clicks Next until the count is reached; it never clicks a
-final Submit/Finish button. Selections are not verified by another model call.
-
-Screen changes, focus loss, window moves, and window switches warn and continue.
-Coordinates are applied to the current window, so moved controls can receive a
-wrong click. Ambiguous or stalled screens are inspected again, making extra API
-calls. No-question/results screens, cancellation, the count limit, and API/input
-failures end the run.
-
-Optional content-only, pale, transparent notifications: copy
-`config/dunst/academia.conf` into `~/.config/dunst/dunstrc.d/` and run
-`dunstctl reload`. Home Manager services with an explicit config need the rule
-included in their dunst configuration. Notification text uses 8pt.
-
 ## Develop
 
 ```sh
@@ -69,8 +52,5 @@ docker build -f tools/Dockerfile.linux -t academia-builder .
 docker run --rm -v "$PWD/dist/linux:/out" academia-builder
 ```
 
-`main/` contains the app; `tests/` separates unit, integration, live, native,
-and support files; `tools/` holds build/verification commands; `artifacts/verification/`
-holds evidence. Live API checks are opt-in: `python3 -m tests.live.router`.
 They make two image requests through the configured combo and may incur provider
 costs. See [release notes](docs/release-notes.md).
